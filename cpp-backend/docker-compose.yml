@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # --- PATIENT MICROSERVICE ---
+  postgres-patient:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: patient_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - cpp-patient-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d patient_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  patient-service:
+    build: .
+    command: ["./patient_service"]
+    ports:
+      - "8081:8080"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-patient:5432/patient_db
+    depends_on:
+      postgres-patient:
+        condition: service_healthy
+
+  # --- DOCTOR MICROSERVICE ---
+  postgres-doctor:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: doctor_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - cpp-doctor-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d doctor_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  doctor-service:
+    build: .
+    command: ["./doctor_service"]
+    ports:
+      - "8082:8080"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-doctor:5432/doctor_db
+    depends_on:
+      postgres-doctor:
+        condition: service_healthy
+
+  # --- APPOINTMENT MICROSERVICE ---
+  postgres-appointment:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: appointment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - cpp-appointment-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appointment_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  appointment-service:
+    build: .
+    command: ["./appointment_service"]
+    ports:
+      - "8083:8080"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-appointment:5432/appointment_db
+    depends_on:
+      postgres-appointment:
+        condition: service_healthy
+
+  # --- BILLING MICROSERVICE ---
+  postgres-billing:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: billing_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - cpp-billing-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d billing_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  billing-service:
+    build: .
+    command: ["./billing_service"]
+    ports:
+      - "8084:8080"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-billing:5432/billing_db
+    depends_on:
+      postgres-billing:
+        condition: service_healthy
+
+  # --- REDIS CACHE ---
+  redis-cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api-gateway:
+    image: nginx:alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - patient-service
+      - doctor-service
+      - appointment-service
+      - billing-service
+      - redis-cache
+
+volumes:
+  cpp-patient-db-data:
+  cpp-doctor-db-data:
+  cpp-appointment-db-data:
+  cpp-billing-db-data:
