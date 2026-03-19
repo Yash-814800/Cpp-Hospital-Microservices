@@ -61,6 +61,24 @@ All endpoints reside behind the `api-gateway` on Port `8080`.
 - `DELETE /api/v1/patients/{id}`
 *(... and corresponding CRUD operations for each microservice)*
 
+## 🧪 Testing & Data
+
+### 1. Seeding Data
+To populate the databases with sample doctors, patients, and appointments:
+1. Ensure your Docker containers are running (`cd cpp-backend && docker-compose up -d`).
+2. Run the SQL commands in `scripts/seed_data.sql` against the respective database ports (5432-5435).
+
+### 2. High-Performance Benchmarking (Stress Test)
+To see the speed of the C++ Crow backend in action:
+```bash
+# Ensure you have the 'requests' library
+pip install requests
+
+# Run the stress test (1,000 requests)
+python scripts/stress_test.py
+```
+This script demonstrates the low latency and high throughput of the microservices, including Redis caching hits!
+
 ## 🛑 Stopping Services
 
 ```bash
